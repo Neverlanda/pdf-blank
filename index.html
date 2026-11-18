@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>PDF 빈 페이지 템플릿 생성기 (삼성 노트용)</title>
+  <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <style>
+    :root {
+      --bg: #f3f5fa;
+      --card: #ffffff;
+      --border: #dce2ee;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --text: #111827;
+      --muted: #64748b;
+      --success-bg: #ecfdf5;
+      --success-fg: #065f46;
+      --warn-bg: #fffbeb;
+      --warn-fg: #92400e;
+      --err-bg: #fef2f2;
+      --err-fg: #991b1b;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      margin: 0;
+      padding: 16px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+    }
+
+    h1 {
+      margin: 0 0 6px;
+      font-size: 1.3rem;
+      font-weight: 700;
+    }
+
+    h2 {
+      margin: 0 0 12px;
+      font-size: 1.05rem;
+      font-weight: 700;
+    }
+
+    .subtitle {
+      margin: 0;
+      font-size: 0.92rem;
+      color: var(--muted);
+    }
+
+    .dropzone {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      gap: 8px;
+      padding: 26px 16px;
+      border: 2px dashed #93c5fd;
+      border-radius: 14px;
+      background: #eff6ff;
+      cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+
+    .dropzone.dragover {
+      background: #dbeafe;
+      border-color: var(--primary);
+    }
+
+    .dropzone-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #1e40af;
+    }
+
+    .dropzone-sub {
+      font-size: 0.85rem;
+      color: #475569;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    .status-box {
+      margin-top: 12px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      display: none;
+    }
+
+    .status-box.info {
+      display: block;
+      background: var(--success-bg);
+      color: var(--success-fg);
+    }
+
+    .status-box.warn {
+      display: block;
+      background: var(--warn-bg);
+      color: var(--warn-fg);
+    }
+
+    .status-box.error {
+      display: block;
+      background: var(--err-bg);
+      color: var(--err-fg);
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .page-controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .stepper {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      background: #ffffff;
+    }
+
+    .stepper button {
+      width: 44px;
+      height: 44px;
+      border: none;
+      background: #f8fafc;
+      color: var(--text);
+      font-size: 1.25rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .stepper button:active {
+      background: #e2e8f0;
+    }
+
+    .stepper input {
+      width: 72px;
+      height: 44px;
+      border: none;
+      border-left: 1px solid var(--border);
+      border-right: 1px solid var(--border);
+      text-align: center;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text);
+      outline: none;
+    }
+
+    .chip-btn {
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #f8fafc;
+      color: var(--text);
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .chip-btn:active {
+      background: #e2e8f0;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 140px;
+      gap: 14px;
+      margin-top: 16px;
+      align-items: center;
+    }
+
+    @media (max-width: 520px) {
+      .info-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .meta-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 0.92rem;
+    }
+
+    .meta-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid #f1f5f9;
+    }
+
+    .meta-label {
+      color: var(--muted);
+    }
+
+    .meta-value {
+      font-weight: 700;
+      text-align: right;
+    }
+
+    .preview-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 12px;
+      border-radius: 12px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      min-height: 140px;
+    }
+
+    .preview-box {
+      border: 2px solid #94a3b8;
+      border-radius: 4px;
+      box-shadow: 0 3px 8px rgba(15, 23, 42, 0.12);
+      background-image: linear-gradient(45deg, #e2e8f0 25%, transparent 25%),
+        linear-gradient(-45deg, #e2e8f0 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #e2e8f0 75%),
+        linear-gradient(-45deg, transparent 75%, #e2e8f0 75%);
+      background-size: 12px 12px;
+      background-position: 0 0, 0 6px, 6px -6px, -6px 0;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .preview-fill {
+      width: 100%;
+      height: 100%;
+    }
+
+    .preview-caption {
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+
+    .bg-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .bg-option {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 9px 12px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      background: #ffffff;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .bg-option.active {
+      border-color: var(--primary);
+      background: #eff6ff;
+      color: #1e40af;
+    }
+
+    .swatch {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+      border: 1px solid #cbd5e1;
+      display: inline-block;
+    }
+
+    .swatch.transparent {
+      background-image: linear-gradient(45deg, #cbd5e1 25%, transparent 25%),
+        linear-gradient(-45deg, #cbd5e1 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #cbd5e1 75%),
+        linear-gradient(-45deg, transparent 75%, #cbd5e1 75%);
+      background-size: 8px 8px;
+      background-position: 0 0, 0 4px, 4px -4px, -4px 0;
+    }
+
+    .action-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 14px 16px;
+      border: none;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #ffffff;
+    }
+
+    .btn-primary:active {
+      background: var(--primary-hover);
+    }
+
+    .btn-secondary {
+      background: #eef2ff;
+      color: #1e40af;
+    }
+
+    .btn-secondary:active {
+      background: #dbeafe;
+    }
+
+    .btn-outline {
+      background: #ffffff;
+      color: var(--text);
+      border: 1.5px solid var(--border);
+    }
+
+    .btn-outline:active {
+      background: #f8fafc;
+    }
+
+    .guide-list {
+      margin: 0;
+      padding-left: 18px;
+      font-size: 0.9rem;
+      color: #334155;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>PDF 빈 페이지 템플릿 생성기</h1>
+      <p class="subtitle">
+        PDF의 첫 페이지(또는 지정한 페이지)와 크기·비율이 완전히 똑같은 빈 PDF 또는 빈 이미지를 만들어 삼성 노트 템플릿으로 등록할 수 있습니다.
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>1. PDF 파일 올리기</h2>
+      <label id="dropzone" class="dropzone" for="pdfInput">
+        <span class="dropzone-title">여기를 눌러 PDF 파일 선택</span>
+        <span class="dropzone-sub">파일은 외부로 전송되지 않고 태블릿 안에서만 처리됩니다</span>
+      </label>
+      <input id="pdfInput" type="file" accept="application/pdf,.pdf" />
+      <div id="fileStatus" class="status-box"></div>
+    </div>
+
+    <div id="configCard" class="card hidden">
+      <h2>2. 기준 페이지 & 크기 확인</h2>
+      <div class="page-controls">
+        <div class="stepper">
+          <button id="prevPageBtn" type="button" aria-label="이전 페이지">−</button>
+          <input id="pageNumberInput" type="number" min="1" value="1" inputmode="numeric" />
+          <button id="nextPageBtn" type="button" aria-label="다음 페이지">+</button>
+        </div>
+        <span id="totalPagesLabel" style="font-size: 0.95rem; font-weight: 600; color: var(--muted);">/ 1 페이지</span>
+        <button id="firstPageBtn" type="button" class="chip-btn">첫 페이지(1)</button>
+      </div>
+
+      <div class="info-grid">
+        <div class="meta-list">
+          <div class="meta-row">
+            <span class="meta-label">방향</span>
+            <span id="metaOrientation" class="meta-value">-</span>
+          </div>
+          <div class="meta-row">
+            <span class="meta-label">PDF 크기 (pt)</span>
+            <span id="metaPoints" class="meta-value">-</span>
+          </div>
+          <div class="meta-row">
+            <span class="meta-label">실제 크기 (mm)</span>
+            <span id="metaMm" class="meta-value">-</span>
+          </div>
+          <div class="meta-row">
+            <span class="meta-label">보정 정보</span>
+            <span id="metaBoxNote" class="meta-value">-</span>
+          </div>
+        </div>
+
+        <div class="preview-wrap">
+          <div id="previewBox" class="preview-box" style="width: 72px; height: 100px;">
+            <div id="previewFill" class="preview-fill" style="background: #ffffff;"></div>
+          </div>
+          <span id="previewRatioText" class="preview-caption">비율 미리보기</span>
+        </div>
+      </div>
+
+      <div style="margin-top: 16px;">
+        <div style="font-size: 0.9rem; font-weight: 700; margin-bottom: 8px;">빈 페이지 배경색</div>
+        <div class="bg-options" id="bgOptions">
+          <button type="button" class="bg-option active" data-bg="#ffffff">
+            <span class="swatch" style="background: #ffffff;"></span>
+            흰색
+          </button>
+          <button type="button" class="bg-option" data-bg="#fcfcfc">
+            <span class="swatch" style="background: #fcfcfc;"></span>
+            삼성노트 미색
+          </button>
+          <button type="button" class="bg-option" data-bg="transparent">
+            <span class="swatch transparent"></span>
+            투명
+          </button>
+          <label class="bg-option" id="customColorLabel">
+            <input id="customColorInput" type="color" value="#fffdf5" style="width: 18px; height: 18px; border: none; padding: 0; background: none;" />
+            직접 선택
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div id="exportCard" class="card hidden">
+      <h2>3. 빈 페이지 만들기</h2>
+      <div class="action-stack">
+        <button id="downloadPdfBtn" type="button" class="btn btn-primary">
+          빈 1페이지 PDF 저장 (추천)
+        </button>
+        <button id="downloadPngBtn" type="button" class="btn btn-secondary">
+          빈 PNG 이미지 저장
+        </button>
+        <button id="copyPngBtn" type="button" class="btn btn-outline">
+          빈 PNG 이미지 클립보드에 복사
+        </button>
+      </div>
+      <div id="actionStatus" class="status-box"></div>
+    </div>
+
+    <div class="card">
+      <h2>삼성 노트 적용 방법</h2>
+      <ol class="guide-list">
+        <li>위에서 <strong>[빈 1페이지 PDF 저장]</strong>(또는 이미지 저장)을 눌러 태블릿에 저장합니다.</li>
+        <li>삼성 노트에서 필기 중인 노트를 열고, 오른쪽 위 <strong>더보기(⋮) → 페이지 템플릿</strong>을 누릅니다.</li>
+        <li><strong>PDF</strong>(또는 이미지) 추가 버튼(<strong>+</strong>)을 눌러 방금 저장한 빈 페이지 파일을 선택하면, 원본 PDF와 크기가 딱 맞는 빈 페이지를 계속 추가할 수 있습니다.</li>
+      </ol>
+    </div>
+  </div>
+
+  <script>
+    const PT_TO_MM = 25.4 / 72;
+
+    const pdfInput = document.getElementById("pdfInput");
+    const dropzone = document.getElementById("dropzone");
+    const fileStatus = document.getElementById("fileStatus");
+    const configCard = document.getElementById("configCard");
+    const exportCard = document.getElementById("exportCard");
+
+    const prevPageBtn = document.getElementById("prevPageBtn");
+    const nextPageBtn = document.getElementById("nextPageBtn");
+    const firstPageBtn = document.getElementById("firstPageBtn");
+    const pageNumberInput = document.getElementById("pageNumberInput");
+    const totalPagesLabel = document.getElementById("totalPagesLabel");
+
+    const metaOrientation = document.getElementById("metaOrientation");
+    const metaPoints = document.getElementById("metaPoints");
+    const metaMm = document.getElementById("metaMm");
+    const metaBoxNote = document.getElementById("metaBoxNote");
+    const previewBox = document.getElementById("previewBox");
+    const previewFill = document.getElementById("previewFill");
+    const previewRatioText = document.getElementById("previewRatioText");
+
+    const bgOptions = document.getElementById("bgOptions");
+    const customColorLabel = document.getElementById("customColorLabel");
+    const customColorInput = document.getElementById("customColorInput");
+
+    const downloadPdfBtn = document.getElementById("downloadPdfBtn");
+    const downloadPngBtn = document.getElementById("downloadPngBtn");
+    const copyPngBtn = document.getElementById("copyPngBtn");
+    const actionStatus = document.getElementById("actionStatus");
+
+    let loadedPdfDoc = null;
+    let sourceFileBaseName = "document";
+    let currentPageNum = 1;
+    let totalPages = 0;
+    let currentPageSize = null;
+    let selectedBg = "#ffffff";
+
+    function showStatus(el, type, text) {
+      el.className = `status-box ${type}`;
+      el.textContent = text;
+    }
+
+    function clearStatus(el) {
+      el.className = "status-box";
+      el.textContent = "";
+    }
+
+    function hexToRgb01(hex) {
+      const clean = hex.replace("#", "");
+      const num = parseInt(clean, 16);
+      return {
+        r: ((num >> 16) & 255) / 255,
+        g: ((num >> 8) & 255) / 255,
+        b: (num & 255) / 255,
+      };
+    }
+
+    function getVisiblePageInfo(page) {
+      const mediaBox = page.getMediaBox();
+      const cropBox = page.getCropBox();
+
+      const x1 = Math.max(mediaBox.x, cropBox.x);
+      const y1 = Math.max(mediaBox.y, cropBox.y);
+      const x2 = Math.min(mediaBox.x + mediaBox.width, cropBox.x + cropBox.width);
+      const y2 = Math.min(mediaBox.y + mediaBox.height, cropBox.y + cropBox.height);
+
+      const hasValidIntersection = x2 > x1 && y2 > y1;
+      const rawWidth = hasValidIntersection ? x2 - x1 : mediaBox.width;
+      const rawHeight = hasValidIntersection ? y2 - y1 : mediaBox.height;
+
+      const isCropped =
+        Math.abs(rawWidth - mediaBox.width) > 0.5 ||
+        Math.abs(rawHeight - mediaBox.height) > 0.5;
+
+      const rawAngle = page.getRotation().angle || 0;
+      const normalizedAngle = ((rawAngle % 360) + 360) % 360;
+      const isSwapped = normalizedAngle === 90 || normalizedAngle === 270;
+
+      const width = isSwapped ? rawHeight : rawWidth;
+      const height = isSwapped ? rawWidth : rawHeight;
+
+      return {
+        width,
+        height,
+        isCropped,
+        angle: normalizedAngle,
+      };
+    }
+
+    function updatePageDetails() {
+      if (!loadedPdfDoc || totalPages === 0) return;
+
+      currentPageNum = Math.max(1, Math.min(totalPages, currentPageNum));
+      pageNumberInput.value = String(currentPageNum);
+
+      const page = loadedPdfDoc.getPage(currentPageNum - 1);
+      const info = getVisiblePageInfo(page);
+      currentPageSize = info;
+
+      const wPt = info.width;
+      const hPt = info.height;
+      const wMm = wPt * PT_TO_MM;
+      const hMm = hPt * PT_TO_MM;
+
+      let orientation = "정사각형";
+      if (wPt > hPt + 1) orientation = "가로형";
+      else if (hPt > wPt + 1) orientation = "세로형";
+
+      metaOrientation.textContent = orientation;
+      metaPoints.textContent = `${wPt.toFixed(1)} × ${hPt.toFixed(1)} pt`;
+      metaMm.textContent = `${wMm.toFixed(1)} × ${hMm.toFixed(1)} mm`;
+
+      const notes = [];
+      if (info.isCropped) notes.push("여백 자르기(CropBox) 반영");
+      if (info.angle !== 0) notes.push(`회전(${info.angle}°) 반영`);
+      metaBoxNote.textContent = notes.length > 0 ? notes.join(", ") : "원본 크기 그대로";
+
+      // 비율 미리보기 박스 크기 계산 (최대 104px)
+      const maxBox = 104;
+      const ratio = wPt / hPt;
+      let boxW, boxH;
+      if (ratio >= 1) {
+        boxW = maxBox;
+        boxH = Math.max(20, Math.round(maxBox / ratio));
+      } else {
+        boxH = maxBox;
+        boxW = Math.max(20, Math.round(maxBox * ratio));
+      }
+      previewBox.style.width = `${boxW}px`;
+      previewBox.style.height = `${boxH}px`;
+      previewFill.style.background = selectedBg === "transparent" ? "transparent" : selectedBg;
+
+      const shortSide = Math.min(wPt, hPt);
+      previewRatioText.textContent = `비율 ${(wPt / shortSide).toFixed(2)} : ${(hPt / shortSide).toFixed(2)}`;
+    }
+
+    async function handlePdfFile(file) {
+      if (!file) return;
+      clearStatus(actionStatus);
+
+      if (typeof PDFLib === "undefined") {
+        showStatus(
+          fileStatus,
+          "error",
+          "PDF 처리 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인한 뒤 새로고침해 주세요."
+        );
+        return;
+      }
+
+      if (!file.name.toLowerCase().endsWith(".pdf") && file.type !== "application/pdf") {
+        showStatus(fileStatus, "error", "PDF 파일만 선택할 수 있습니다.");
+        return;
+      }
+
+      showStatus(fileStatus, "warn", "PDF를 읽는 중입니다...");
+
+      try {
+        const buffer = await file.arrayBuffer();
+        const doc = await PDFLib.PDFDocument.load(buffer, { ignoreEncryption: true });
+
+        loadedPdfDoc = doc;
+        totalPages = doc.getPageCount();
+        sourceFileBaseName = file.name.replace(/\.pdf$/i, "") || "document";
+        currentPageNum = 1;
+
+        pageNumberInput.max = String(totalPages);
+        totalPagesLabel.textContent = `/ ${totalPages} 페이지`;
+
+        configCard.classList.remove("hidden");
+        exportCard.classList.remove("hidden");
+        updatePageDetails();
+
+        showStatus(fileStatus, "info", `불러오기 완료: ${file.name} (총 ${totalPages}페이지)`);
+      } catch (err) {
+        console.error(err);
+        loadedPdfDoc = null;
+        configCard.classList.add("hidden");
+        exportCard.classList.add("hidden");
+        showStatus(
+          fileStatus,
+          "error",
+          "PDF를 읽지 못했습니다. 열기 암호가 걸려 있거나 손상된 파일일 수 있습니다."
+        );
+      }
+    }
+
+    function triggerDownload(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    }
+
+    async function buildBlankPdfBlob() {
+      const outDoc = await PDFLib.PDFDocument.create();
+      const page = outDoc.addPage([currentPageSize.width, currentPageSize.height]);
+
+      if (selectedBg !== "transparent") {
+        const { r, g, b } = hexToRgb01(selectedBg);
+        page.drawRectangle({
+          x: 0,
+          y: 0,
+          width: currentPageSize.width,
+          height: currentPageSize.height,
+          color: PDFLib.rgb(r, g, b),
+        });
+      }
+
+      const bytes = await outDoc.save();
+      return new Blob([bytes], { type: "application/pdf" });
+    }
+
+    async function buildBlankPngBlob() {
+      const longSidePx = 2400;
+      const scale = longSidePx / Math.max(currentPageSize.width, currentPageSize.height);
+      const pxW = Math.max(1, Math.round(currentPageSize.width * scale));
+      const pxH = Math.max(1, Math.round(currentPageSize.height * scale));
+
+      const canvas = document.createElement("canvas");
+      canvas.width = pxW;
+      canvas.height = pxH;
+      const ctx = canvas.getContext("2d");
+
+      if (selectedBg === "transparent") {
+        ctx.clearRect(0, 0, pxW, pxH);
+      } else {
+        ctx.fillStyle = selectedBg;
+        ctx.fillRect(0, 0, pxW, pxH);
+      }
+
+      return await new Promise((resolve, reject) => {
+        canvas.toBlob((blob) => {
+          if (blob) resolve(blob);
+          else reject(new Error("PNG 생성에 실패했습니다."));
+        }, "image/png");
+      });
+    }
+
+    pdfInput.addEventListener("change", (e) => {
+      const file = e.target.files && e.target.files[0];
+      handlePdfFile(file);
+    });
+
+    dropzone.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      dropzone.classList.add("dragover");
+    });
+
+    dropzone.addEventListener("dragleave", () => {
+      dropzone.classList.remove("dragover");
+    });
+
+    dropzone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      dropzone.classList.remove("dragover");
+      const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      handlePdfFile(file);
+    });
+
+    prevPageBtn.addEventListener("click", () => {
+      if (currentPageNum > 1) {
+        currentPageNum -= 1;
+        updatePageDetails();
+      }
+    });
+
+    nextPageBtn.addEventListener("click", () => {
+      if (currentPageNum < totalPages) {
+        currentPageNum += 1;
+        updatePageDetails();
+      }
+    });
+
+    firstPageBtn.addEventListener("click", () => {
+      currentPageNum = 1;
+      updatePageDetails();
+    });
+
+    pageNumberInput.addEventListener("change", () => {
+      const val = parseInt(pageNumberInput.value, 10);
+      currentPageNum = Number.isNaN(val) ? 1 : val;
+      updatePageDetails();
+    });
+
+    bgOptions.addEventListener("click", (e) => {
+      const btn = e.target.closest("button.bg-option");
+      if (!btn) return;
+      bgOptions.querySelectorAll(".bg-option").forEach((el) => el.classList.remove("active"));
+      btn.classList.add("active");
+      selectedBg = btn.dataset.bg;
+      updatePageDetails();
+    });
+
+    customColorInput.addEventListener("input", () => {
+      bgOptions.querySelectorAll(".bg-option").forEach((el) => el.classList.remove("active"));
+      customColorLabel.classList.add("active");
+      selectedBg = customColorInput.value;
+      updatePageDetails();
+    });
+
+    downloadPdfBtn.addEventListener("click", async () => {
+      if (!currentPageSize) return;
+      try {
+        const blob = await buildBlankPdfBlob();
+        const filename = `${sourceFileBaseName}_p${currentPageNum}_blank.pdf`;
+        triggerDownload(blob, filename);
+        showStatus(actionStatus, "info", `저장 완료: ${filename}`);
+      } catch (err) {
+        console.error(err);
+        showStatus(actionStatus, "error", "빈 PDF를 만드는 중 오류가 발생했습니다.");
+      }
+    });
+
+    downloadPngBtn.addEventListener("click", async () => {
+      if (!currentPageSize) return;
+      try {
+        const blob = await buildBlankPngBlob();
+        const filename = `${sourceFileBaseName}_p${currentPageNum}_blank.png`;
+        triggerDownload(blob, filename);
+        showStatus(actionStatus, "info", `저장 완료: ${filename}`);
+      } catch (err) {
+        console.error(err);
+        showStatus(actionStatus, "error", "빈 이미지를 만드는 중 오류가 발생했습니다.");
+      }
+    });
+
+    copyPngBtn.addEventListener("click", async () => {
+      if (!currentPageSize) return;
+      if (!navigator.clipboard || typeof ClipboardItem === "undefined") {
+        showStatus(
+          actionStatus,
+          "warn",
+          "이 주소 환경에서는 클립보드 복사가 제한됩니다. HTTPS 주소로 올리거나 [저장] 버튼을 이용해 주세요."
+        );
+        return;
+      }
+
+      try {
+        const blob = await buildBlankPngBlob();
+        await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+        showStatus(actionStatus, "info", "빈 PNG 이미지를 클립보드에 복사했습니다.");
+      } catch (err) {
+        console.error(err);
+        showStatus(
+          actionStatus,
+          "warn",
+          "클립보드 복사가 거부되었거나 지원되지 않는 브라우저입니다. [저장] 버튼을 이용해 주세요."
+        );
+      }
+    });
+  </script>
+</body>
+</html>
